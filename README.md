@@ -28,7 +28,7 @@ Episode 24 is in [HelloRxKotlin](## Chapter 3, Transforming Observables
 
 Episode 23 is an introduction
 
-Episode 24 is in [HelloRxKotlin](https://github.com/AungThiha/HelloRxKotlin)
+Episode 24 is in [HelloRxKotlin](https://github.com/KhinThiriSoe/HelloRxKotlin)
 
 Episode 25 is in [Combinestagram](https://github.com/KhinThiriSoe/Combinestagram)
 
