@@ -33,6 +33,7 @@ package com.raywenderlich.android.gitfeed
 
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.ViewModel
+import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.addTo
@@ -43,6 +44,8 @@ class MainViewModel : ViewModel() {
 
   val eventLiveData = MutableLiveData<List<Event>>()
 
+  private var lastModified: String? = null
+
   var events = mutableListOf<Event>()
 
   private val gitHubApi by lazy {
@@ -52,7 +55,14 @@ class MainViewModel : ViewModel() {
   private val disposables = CompositeDisposable()
 
   fun fetchEvents(repo: String) {
-    val apiResponse = gitHubApi.fetchEvents(repo)
+
+    eventLiveData.value = EventsStore.readEvents()
+
+    lastModified = EventsStore.readLastModified()
+
+    val apiResponse = gitHubApi.fetchEvents(
+      repo, lastModified?.trim() ?: ""
+    ).share()
     apiResponse
       .filter { response ->
         (200..300).contains(response.code())
@@ -71,6 +81,25 @@ class MainViewModel : ViewModel() {
       .subscribeBy(
         onNext = { events -> processEvents(events) },
         onError = { error -> println("Error ::: ${error.message}")}
+      ).addTo(disposables)
+
+    apiResponse
+      .filter { response ->
+         (200 until 400).contains(response.code())
+      }
+      .flatMap { response ->
+        val value = response.headers().get("Last-modified")
+        if (value == null){
+          Observable.empty()
+        } else {
+          Observable.just(value)
+        }
+      }
+      .subscribeOn(Schedulers.io())
+      .observeOn(AndroidSchedulers.mainThread())
+      .subscribeBy(
+        onNext = { lastModified -> EventsStore.saveLastModified(lastModified) },
+        onError = { error -> println("Last Modified Error ::: ${error.message}")}
       ).addTo(disposables)
   }
 
